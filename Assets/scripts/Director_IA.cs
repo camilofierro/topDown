@@ -22,11 +22,18 @@ public class Director_IA : MonoBehaviour
     public int max_spawn; //cantidad maxima de spawns que puede haber 
     [SerializeField]int cant_spawn; //cantidad actual
     public List<GameObject> spawns_list; //listado para gestionarlos
-    public int areaCreacion;
-    public Transform Ubicacion;
-
+    public int areaCreacion; //el area en la que pueden aparecer los spawn 
+    public Transform UbicacionM;
+    public Transform UbicacionS;
     private Vector3 area ;
 
+    [Header("tiempo")]
+    public float TimerCrearSpawn = 5;
+    [SerializeField] private float ACTTimerCrearSpawn;
+    public float TimerCrearMob = 1 ;
+    [SerializeField] private float ACTTimerCrearMob;
+
+    public bool gameMode = true; 
 
     void Start()
     {
@@ -34,28 +41,35 @@ public class Director_IA : MonoBehaviour
         cant_enemys = mobs_list.Count;
         cant_spawn = spawns_list.Count;
         target = objetivo.position;
-
+        ACTTimerCrearMob = TimerCrearMob;
+        ACTTimerCrearSpawn = TimerCrearSpawn;
 
     }
 
     void Update()
     {
         act_target_pos();
+
         area = new Vector3(areaCreacion,1,areaCreacion);
+
+        if (gameMode)
+            Gestor();
 
         if (Input.GetButtonDown("Fire3"))
         {
             crear_spawn();
         }
         if(cant_enemys == 0 && cant_spawn == 0){
-            winState();
+            WinState();
         }
+
+
     }
 
-    void act_target_pos(){ //esta funcion actualiza la posicion del jugador en cada paso 
+    private void act_target_pos(){ //esta funcion actualiza la posicion del jugador en cada paso 
         target = objetivo.position;
         for (int i = 0; i < mobs_list.Count; i++){
-            if (mobs_list[i])
+            if (mobs_list[i] != null)
             {
                 mobs_list[i].gameObject.GetComponent<gulybad>().Set_target(objetivo.position);
             }
@@ -83,10 +97,10 @@ public class Director_IA : MonoBehaviour
     private void crear_spawn()
     {
         Vector3 pos = transform.position + new Vector3(Random.Range(-(areaCreacion / 2), (areaCreacion / 2)), 0, Random.Range(-(areaCreacion / 2), (areaCreacion / 2)));
-        GameObject aux = Instantiate(spawn, pos, Quaternion.identity);
+        GameObject aux = Instantiate(spawn, pos, Quaternion.identity,UbicacionS);
         aux.gameObject.name = "spawn " + (spawns_list.Count);
         aux.gameObject.GetComponent<spawn>().ID = spawns_list.Count;
-        aux.gameObject.GetComponent<spawn>().ubicacion = Ubicacion;
+        aux.gameObject.GetComponent<spawn>().ubicacion = UbicacionM;
         spawns_list.Add(aux);
         cant_spawn++;
     }
@@ -106,10 +120,45 @@ public class Director_IA : MonoBehaviour
         //Destroy(aux);
     }
 
-    public void winState()
+    public void WinState()
     {
         Debug.Log("ganaste");
     }
+
+    private void ReduxReloj(){
+        float tima = Time.deltaTime;
+        ACTTimerCrearSpawn -= tima;
+        ACTTimerCrearMob -= tima;
+    }
+
+    private void Gestor()
+    {
+        ReduxReloj();
+        if (ACTTimerCrearSpawn < 0 )
+        {
+            ACTTimerCrearSpawn = TimerCrearSpawn;
+            if (cant_spawn < max_spawn)
+            {
+                crear_spawn();
+            }
+        }
+
+        if (ACTTimerCrearMob < 0 )
+        {
+            ACTTimerCrearMob = TimerCrearMob;
+
+            if (cant_enemys < max_enemy)
+            {
+                int aux = Random.Range(0, spawns_list.Count);
+                if (spawns_list[aux] != null)
+                {
+                    spawns_list[aux].gameObject.GetComponent<spawn>().CrearBastago();
+                }
+            }
+               
+        }
+    }
+
 
     private void OnDrawGizmos(){
 
